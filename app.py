@@ -1,3 +1,5 @@
+import os
+import math
 import numpy as np
 import pandas as pd
 
@@ -11,6 +13,9 @@ from torchvision import datasets, transforms
 
 import util
 import SessionState
+import modeling
+
+os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 
 
 def show_overview_page():
@@ -79,6 +84,7 @@ def show_gan_intro_page():
         '**Batch Size**: number of examples to work though in each optimization iteration. It is the subset of the entire training dataset)'
     )
     st.markdown('**Epochs**: each epoch means going through the entire training dataset once')
+    st.markdown('**Sample Interval**: how frequently we sample the loss and generated images')
 
     st.header('How does GAN differ from CNN?')
     st.write(
@@ -170,10 +176,25 @@ def show_gan_intro_page():
     fig
 
 
-def show_pretrain_page():
-    # Reference: https://discuss.streamlit.io/t/is-there-any-working-example-for-session-state-for-streamlit-version-0-63-1/4551/2
-    session_state = SessionState.get(start_train=False, dataset='MNIST', lr=0.0001, latent_dim=25)
+# Reference: https://discuss.streamlit.io/t/is-there-any-working-example-for-session-state-for-streamlit-version-0-63-1/4551/2
+session_state = SessionState.get(
+    start_pretrain=False,
+    pretrain_dataset='MNIST',
+    pretrain_lr=0.0001,
+    pretrain_latent_dim=25,
+    start_train=False,
+    finish_train=False,
+    dataset='MNIST',
+    lr=0.0001,
+    latent_dim=25,
+    batch_step=[],
+    g_loss=[],
+    d_loss=[],
+    imgs=[],
+)
 
+
+def show_pretrain_page():
     st.title('Pre-trained Models')
     st.text('By Jiajun Bao and Zixu Chen')
     st.write(
@@ -192,15 +213,15 @@ def show_pretrain_page():
 
     st.sidebar.subheader("Ready? Let's get started!")
     start_train = st.sidebar.button('Start Training')
-    if dataset != session_state.dataset or lr != session_state.lr or latent_dim != session_state.latent_dim:
-        session_state.start_train = False
+    if dataset != session_state.pretrain_dataset or lr != session_state.pretrain_lr or latent_dim != session_state.pretrain_latent_dim:
+        session_state.start_pretrain = False
 
     st.header('Training Loss Results')
-    if start_train or session_state.start_train:
-        session_state.start_train = True
-        session_state.dataset = dataset
-        session_state.lr = lr
-        session_state.latent_dim = latent_dim
+    if start_train or session_state.start_pretrain:
+        session_state.start_pretrain = True
+        session_state.pretrain_dataset = dataset
+        session_state.pretrain_lr = lr
+        session_state.pretrain_latent_dim = latent_dim
 
         # Configuring upperbound
         st.markdown('**Configuring Upperbound**')
@@ -222,66 +243,138 @@ def show_pretrain_page():
         # Plotting figures
         st.markdown('**Loss Figures**')
         batch_step, g_loss, d_loss = util.load_pretrain_stats(lr, latent_dim, dataset)
-        g_loss = util.smooth_stats(g_loss, upperbound)
-        d_loss = util.smooth_stats(d_loss, upperbound)
-        loss_df = pd.DataFrame({
-            'Batch Step': batch_step,
-            'Generator': g_loss,
-            'Discriminator': d_loss,
-        })
-        loss_df = loss_df.melt('Batch Step')
-        loss_plot = alt.Chart(
-            loss_df,
-            title="Generator and Discriminator's Loss during Training",
-        ).mark_line().encode(
-            x=alt.X("Batch Step:Q", title="Batch Step"),
-            y=alt.Y(
-                "value:Q",
-                title="Loss",
-            ),
-            color=alt.Y(
-                "variable",
-                title="Category",
-            ),
-            tooltip=[
-                alt.Tooltip('Batch Step:Q', title="Batch Step"),
-                alt.Tooltip('variable', title="Category"),
-                alt.Tooltip('value', title="Loss"),
-            ],
-        ).properties(width=600, height=400)
 
-        g_loss_ravg = util.smooth_stats(util.rolling_avg(g_loss, roll_range), upperbound)
-        d_loss_ravg = util.smooth_stats(util.rolling_avg(d_loss, roll_range), upperbound)
-        loss_ravg_df = pd.DataFrame({
-            'Batch Step': batch_step,
-            'Generator': g_loss_ravg,
-            'Discriminator': d_loss_ravg,
-        })
-        loss_ravg_df = loss_ravg_df.melt('Batch Step')
+        scaled_loss_plot, loss_ravg_plot = util.plot_loss_figs(batch_step, g_loss, d_loss,
+                                                               upperbound, roll_range)
+        scaled_loss_plot & loss_ravg_plot
 
-        step_select = alt.selection_interval(encodings=['x'])
-        loss_ravg_plot = alt.Chart(
-            loss_ravg_df,
-            title="Generator and Discriminator's Rolling Average Loss during Training",
-        ).mark_line().encode(
-            x=alt.X("Batch Step:Q", title="Batch Step"),
-            y=alt.Y(
-                "value:Q",
-                title="Rolling Avg Loss",
-            ),
-            color=alt.Y(
-                "variable",
-                title="Category",
-            ),
-            tooltip=[
-                alt.Tooltip('Batch Step:Q', title="Batch Step"),
-                alt.Tooltip('variable', title="Category"),
-                alt.Tooltip('value', title="Rolling Avg Loss"),
-            ],
-        ).add_selection(step_select).properties(width=600, height=400)
+        st.write(
+            "You may slide on the rolling average loss figure to select a range of batch steps. This allows you to zoom in to the corresponding range in the above vanilla loss figure to see the details."
+        )
+    else:
+        st.write("Waiting for training to start or finish...")
 
-        scaled_loss_plot = loss_plot.encode(
-            alt.X("Batch Step:Q", title="Batch Step", scale=alt.Scale(domain=step_select)))
+    st.header('Generated Images')
+    if start_train or session_state.start_pretrain:
+        st.write(
+            'You may use the slider below to see how the images generated by the GAN changes through the training process.'
+        )
+
+        step = st.slider(
+            'After How Many Batch Steps',
+            min_value=0,
+            max_value=6250,
+            value=3000,
+            step=500,
+        )
+
+        imgs = util.load_img(f'data/{dataset.lower()}_generated/{lr}_{latent_dim}')
+        fig = util.plot_pretrain_generated_img(imgs, step)
+        fig
+    else:
+        st.write("Waiting for training to start or finish...")
+
+
+def show_training_page():
+    st.title('Model Training')
+    st.text('By Jiajun Bao and Zixu Chen')
+
+    st.sidebar.subheader('Hyperparameter Configurations')
+
+    dataset = st.sidebar.selectbox('Training dataset:', ('MNIST', 'FashionMNIST', 'KMNIST'))
+    lr = float(st.sidebar.text_input('Learning Rate (float):', '0.0004'))
+    latent_dim = int(st.sidebar.text_input('Latent Variable Dimension (int):', '100'))
+    batch_size = st.sidebar.selectbox('Batch Size:', ([32]))
+    epochs = int(st.sidebar.text_input('Training Epochs (int):', '20'))
+    sample_interval = st.sidebar.selectbox('Sample Interval:', (10, 20, 50, 100, 500, 1000), 0)
+    show_progress = st.sidebar.checkbox("Show Intermediate Generated Images", value=True)
+
+    st.sidebar.subheader("Ready? Let's get started!")
+    start_train = st.sidebar.button('Start Training')
+    if dataset != session_state.dataset or lr != session_state.lr or latent_dim != session_state.latent_dim:
+        session_state.start_train = False
+        session_state.finish_train = False
+
+    st.header('Reminder')
+    st.write(
+        "You can reduce the number of training epochs to a small number to finish the training faster. However, the generated images might look very bad if we don't train enough."
+    )
+
+    st.header('Training Progress')
+    batch_step = []
+    g_loss = []
+    d_loss = []
+    imgs = []
+
+    if dataset == 'MNIST':
+        total_steps = 63 * epochs
+    elif dataset == 'FashionMNIST':
+        total_steps = 625 * epochs
+
+    if start_train or session_state.start_train:
+        session_state.start_train = True
+        session_state.dataset = dataset
+        session_state.lr = lr
+        session_state.latent_dim = latent_dim
+        progress_bar = st.progress(0)
+
+        if not session_state.finish_train:
+            for ret in modeling.train(lr, latent_dim, epochs, sample_interval, dataset):
+                batch_step.append(ret['batches_done'])
+                g_loss.append(ret['g_loss'])
+                d_loss.append(ret['d_loss'])
+                imgs.append(ret['first_25_images'])
+                progress = int(batch_step[-1] / total_steps * 100)
+                if show_progress:
+                    fig = plt.figure()
+                    fig.suptitle(f'Step: {batch_step[-1]} | Progress: {progress}%')
+                    for i in range(25):
+                        plt.subplot(5, 5, i + 1)
+                        plt.imshow(imgs[-1][i][0], cmap='gray')
+                        plt.xticks([])
+                        plt.yticks([])
+                    fig
+                progress_bar.progress(progress)
+            session_state.finish_train = True
+            session_state.batch_step = batch_step
+            session_state.g_loss = g_loss
+            session_state.d_loss = d_loss
+            session_state.imgs = imgs
+        else:
+            batch_step = session_state.batch_step
+            g_loss = session_state.g_loss
+            d_loss = session_state.d_loss
+            imgs = session_state.imgs
+
+        progress_bar.progress(100)
+        st.write("Training finished!")
+    else:
+        st.write("Waiting for training to start or finish...")
+
+    st.header('Training Loss Results')
+    if start_train or session_state.start_train:
+        # Configuring upperbound
+        st.markdown('**Configuring Upperbound**')
+        st.write(
+            'If you look at the loss figure below, for some hyperparameter configurations, the loss result may have outliers that are very high, which can impact the overall scale of the plots. The below field allows you to set an upperbound on the loss to smooth the plots. The default -1 means no upperbound is set.'
+        )
+        st.write(
+            'This typically happens when we have a high learning rate. If we look at the generated image after the outlier appears, they will be a mess.'
+        )
+        upperbound = int(st.text_input('Smoothing Upperbound (int):', '-1'))
+
+        # Configuring rolling range
+        st.markdown('**Configuring Range for Calculating Rolling Average**')
+        st.write(
+            'The vanilla loss figure is zig-zagging a lot and hard to see the trend. Therefore, we can apply rolling average for a range of data to smooth the curves. Typically, the larger the range is, the smoother the curve is.'
+        )
+        roll_range = st.selectbox('Rolling Average Range:', (10, 25, 50, 100, 200), 2)
+
+        # Plotting figures
+        st.markdown('**Loss Figures**')
+
+        scaled_loss_plot, loss_ravg_plot = util.plot_loss_figs(batch_step, g_loss, d_loss,
+                                                               upperbound, roll_range)
         scaled_loss_plot & loss_ravg_plot
 
         st.write(
@@ -299,47 +392,15 @@ def show_pretrain_page():
         step = st.slider(
             'After How Many Batch Steps',
             min_value=0,
-            max_value=6250,
-            value=3000,
-            step=500,
+            max_value=total_steps,
+            value=0,
+            step=sample_interval,
         )
 
-        imgs = util.load_img(f'data/{dataset.lower()}_generated/{lr}_{latent_dim}')
-        fig = util.plot_generated_img(imgs, step)
+        fig = util.plot_generated_img(imgs, step, sample_interval)
         fig
     else:
         st.write("Waiting for training to start or finish...")
-
-
-def show_training_page():
-    st.title('Model Training')
-    st.text('By Jiajun Bao and Zixu Chen')
-
-    st.sidebar.subheader('Hyperparameter Configurations')
-
-    dataset = st.sidebar.selectbox('Training dataset:', ('MNIST', 'FashionMNIST', 'KMNIST'))
-    lr = float(st.sidebar.text_input('Learning Rate (float):', '0.01'))
-    epochs = int(st.sidebar.text_input('Training Epochs (int):', '10'))
-    da = st.sidebar.multiselect('Data Augmentations:',
-                                ['CenterCrop', 'ColorJitter', 'RandomRotation', 'GaussianBlur'], [])
-
-    st.subheader('Current Training Configurations')
-    st.write(f'Dataset = {dataset}')
-    st.write(f'Learning Rate = {lr}')
-    st.write(f'Epochs = {epochs}')
-    st.write(f'Data Augmentations = {da}')
-
-    st.subheader("Ready? Let's get started!")
-    if st.button('Start Training'):
-        fig = util.plot_fake_loss()
-        fig
-
-
-def show_cmp_training_page():
-    st.title('Compare Training Results')
-    st.text('By Jiajun Bao and Zixu Chen')
-
-    st.write('Still working on this 🚧')
 
 
 def show_inference_page():
@@ -358,7 +419,7 @@ st.sidebar.write('Help beginners to learn GAN more easily')
 st.sidebar.subheader('Page Navigation')
 pages = [
     'Dataset Overview', 'GAN Introduction', 'Pre-trained Models', 'Model Training',
-    'Compare Training Results', 'Model Inference'
+    'Model Inference'
 ]
 
 page = st.sidebar.selectbox('Choose a stage to explore:', pages)
@@ -372,6 +433,4 @@ elif page == pages[2]:
 elif page == pages[3]:
     show_training_page()
 elif page == pages[4]:
-    show_cmp_training_page()
-elif page == pages[5]:
     show_inference_page()

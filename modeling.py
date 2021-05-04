@@ -1,5 +1,5 @@
 import numpy as np
-from collections import namedtuple 
+from collections import namedtuple
 
 import torchvision.transforms as transforms
 
@@ -10,39 +10,22 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch
 
+from util import dataset_to_method
 
 config = {
-    "n_epochs": 5,
     "batch_size": 32,
     "b1": 0.5,
     "b2": 0.999,
     "n_cpu": 8,
     "img_size": 32,
     "channels": 1,
-    "sample_interval": 10
 }
 
 opt = namedtuple('opt', config.keys())(**config)
 
-print(opt)
+# print(opt)
 
-# load dataset
 cuda = True if torch.cuda.is_available() else False
-
-path_to_images = "data/small"
-
-dataloader = torch.utils.data.DataLoader(
-    datasets.MNIST(
-        path_to_images,
-        train=True,
-        download=False,
-        transform=transforms.Compose(
-            [transforms.Resize(opt.img_size), transforms.ToTensor(), transforms.Normalize([0.5], [0.5])]
-        ),
-    ),
-    batch_size=opt.batch_size,
-    shuffle=True,
-)
 
 
 def weights_init_normal(m):
@@ -59,7 +42,7 @@ class Generator(nn.Module):
         super(Generator, self).__init__()
 
         self.init_size = opt.img_size // 4
-        self.l1 = nn.Sequential(nn.Linear(latent_dim, 128 * self.init_size ** 2))
+        self.l1 = nn.Sequential(nn.Linear(latent_dim, 128 * self.init_size**2))
 
         self.conv_blocks = nn.Sequential(
             nn.BatchNorm2d(128),
@@ -87,7 +70,11 @@ class Discriminator(nn.Module):
         super(Discriminator, self).__init__()
 
         def discriminator_block(in_filters, out_filters, bn=True):
-            block = [nn.Conv2d(in_filters, out_filters, 3, 2, 1), nn.LeakyReLU(0.2, inplace=True), nn.Dropout2d(0.25)]
+            block = [
+                nn.Conv2d(in_filters, out_filters, 3, 2, 1),
+                nn.LeakyReLU(0.2, inplace=True),
+                nn.Dropout2d(0.25)
+            ]
             if bn:
                 block.append(nn.BatchNorm2d(out_filters, 0.8))
             return block
@@ -100,8 +87,8 @@ class Discriminator(nn.Module):
         )
 
         # The height and width of downsampled image
-        ds_size = opt.img_size // 2 ** 4
-        self.adv_layer = nn.Sequential(nn.Linear(128 * ds_size ** 2, 1), nn.Sigmoid())
+        ds_size = opt.img_size // 2**4
+        self.adv_layer = nn.Sequential(nn.Linear(128 * ds_size**2, 1), nn.Sigmoid())
 
     def forward(self, img):
         out = self.model(img)
@@ -117,10 +104,28 @@ adversarial_loss = torch.nn.BCELoss()
 Tensor = torch.cuda.FloatTensor if cuda else torch.FloatTensor
 
 
-def train(lr, latent_dim):
+def train(lr, latent_dim, epochs, sample_interval, dataset):
     # Initialize generator and discriminator
     generator = Generator(latent_dim)
     discriminator = Discriminator()
+
+    path_to_images = "data/small"
+
+    load_method = dataset_to_method[dataset]
+    dataloader = torch.utils.data.DataLoader(
+        load_method(
+            path_to_images,
+            train=True,
+            download=False,
+            transform=transforms.Compose([
+                transforms.Resize(opt.img_size),
+                transforms.ToTensor(),
+                transforms.Normalize([0.5], [0.5])
+            ]),
+        ),
+        batch_size=opt.batch_size,
+        shuffle=True,
+    )
 
     if cuda:
         generator.cuda()
@@ -136,7 +141,7 @@ def train(lr, latent_dim):
     optimizer_D = torch.optim.Adam(discriminator.parameters(), lr=lr, betas=(opt.b1, opt.b2))
     # loggings
     # loggings = dict()
-    for epoch in range(opt.n_epochs):
+    for epoch in range(epochs):
         for i, (imgs, _) in enumerate(dataloader):
 
             # Adversarial ground truths
@@ -167,7 +172,7 @@ def train(lr, latent_dim):
             #  Train Discriminator
             optimizer_D.zero_grad()
 
-            # Measure discriminator's ability to classify 
+            # Measure discriminator's ability to classify
             # real from generated samples
             real_loss = adversarial_loss(discriminator(real_imgs), valid)
             fake_loss = adversarial_loss(discriminator(gen_imgs.detach()), fake)
@@ -179,16 +184,13 @@ def train(lr, latent_dim):
             # loggings['g_loss'] = loggings.get('g_loss', list()) + [g_loss.item()]
 
             batches_done = epoch * len(dataloader) + i
-            if batches_done % opt.sample_interval == 0:
+            if batches_done % sample_interval == 0:
                 # uncomment the following line to save images as files
-                # save_image(gen_imgs.data[:25], 
+                # save_image(gen_imgs.data[:25],
                 # os.path.join(output_path, "%d.png") % batches_done, nrow=5, normalize=True)
-                yield {"d_loss": d_loss.item(),
-                       "g_loss": g_loss.item(),
-                       "batches_done": batches_done,
-                       "first_25_images": gen_imgs.data[:25]}
-
-
-if __name__ == "__main__":
-    for x in train(1e-3, 100):
-        print(x)
+                yield {
+                    "d_loss": d_loss.item(),
+                    "g_loss": g_loss.item(),
+                    "batches_done": batches_done,
+                    "first_25_images": gen_imgs.data[:25]
+                }
