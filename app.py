@@ -308,11 +308,7 @@ def show_training_page():
     g_loss = []
     d_loss = []
     imgs = []
-
-    if dataset == 'MNIST':
-        total_steps = 63 * epochs
-    elif dataset == 'FashionMNIST':
-        total_steps = 625 * epochs
+    total_steps = 63 * epochs
 
     if start_train or session_state.start_train:
         session_state.start_train = True
