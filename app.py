@@ -325,7 +325,7 @@ def show_training_page():
                 g_loss.append(ret['g_loss'])
                 d_loss.append(ret['d_loss'])
                 imgs.append(ret['first_25_images'])
-                g_model = ret['g_model']
+                # g_model = ret['g_model']
                 progress = int(batch_step[-1] / total_steps * 100)
                 if show_progress:
                     fig = plt.figure()
@@ -342,8 +342,8 @@ def show_training_page():
             session_state.g_loss = g_loss
             session_state.d_loss = d_loss
             session_state.imgs = imgs
-            session_state.saved_model = g_model
-            session_state.saved_latent_dim = latent_dim
+            # session_state.saved_model = g_model
+            # session_state.saved_latent_dim = latent_dim
         else:
             batch_step = session_state.batch_step
             g_loss = session_state.g_loss
