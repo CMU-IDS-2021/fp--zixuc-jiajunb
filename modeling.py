@@ -104,17 +104,15 @@ adversarial_loss = torch.nn.BCELoss()
 Tensor = torch.cuda.FloatTensor if cuda else torch.FloatTensor
 
 
-def train(lr, latent_dim, epochs, sample_interval, dataset):
+def train(lr, latent_dim, epochs, sample_interval, dataset, dataset_path):
     # Initialize generator and discriminator
     generator = Generator(latent_dim)
     discriminator = Discriminator()
 
-    path_to_images = "data/small"
-
     load_method = dataset_to_method[dataset]
     dataloader = torch.utils.data.DataLoader(
         load_method(
-            path_to_images,
+            dataset_path,
             train=True,
             download=False,
             transform=transforms.Compose([
@@ -193,5 +191,5 @@ def train(lr, latent_dim, epochs, sample_interval, dataset):
                     "g_loss": g_loss.item(),
                     "batches_done": batches_done,
                     "first_25_images": gen_imgs.data[:25],
-                    "g_model": generator.state_dict()
+                    "g_model": generator.state_dict(),
                 }
