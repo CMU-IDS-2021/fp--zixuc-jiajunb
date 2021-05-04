@@ -192,5 +192,6 @@ def train(lr, latent_dim, epochs, sample_interval, dataset):
                     "d_loss": d_loss.item(),
                     "g_loss": g_loss.item(),
                     "batches_done": batches_done,
-                    "first_25_images": gen_imgs.data[:25]
+                    "first_25_images": gen_imgs.data[:25],
+                    "g_model": generator.state_dict()
                 }

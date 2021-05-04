@@ -15,22 +15,21 @@ import util
 import SessionState
 import modeling
 
-os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
+os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'  # Prevent warning in MacOS
 
 
 def show_overview_page():
     st.title('Overview of Datasets')
     st.text('By Jiajun Bao and Zixu Chen')
 
-    st.header('Note to First Time User')
+    st.header('Note to First Time Users')
     st.write(
         'If this is the first time you open the application, please wait a bit for the dataset to be downloaded 🙂'
     )
 
     dataloaders = {}
 
-    # TODO: show dataset introduction and statistics
-    # TODO: show 'loading data' in the app?
+    # TODO: show dataset introduction
 
     st.header('MNIST Dataset')
     if st.checkbox('Display sample MNIST images'):
@@ -187,10 +186,14 @@ session_state = SessionState.get(
     dataset='MNIST',
     lr=0.0001,
     latent_dim=25,
+    epochs=20,
+    sample_interval=10,
     batch_step=[],
     g_loss=[],
     d_loss=[],
     imgs=[],
+    saved_model=None,
+    saved_latent_dim=25,
 )
 
 
@@ -291,7 +294,7 @@ def show_training_page():
 
     st.sidebar.subheader("Ready? Let's get started!")
     start_train = st.sidebar.button('Start Training')
-    if dataset != session_state.dataset or lr != session_state.lr or latent_dim != session_state.latent_dim:
+    if dataset != session_state.dataset or lr != session_state.lr or latent_dim != session_state.latent_dim or epochs != session_state.epochs or sample_interval != session_state.sample_interval:
         session_state.start_train = False
         session_state.finish_train = False
 
@@ -316,6 +319,8 @@ def show_training_page():
         session_state.dataset = dataset
         session_state.lr = lr
         session_state.latent_dim = latent_dim
+        session_state.epochs = epochs
+        session_state.sample_interval = sample_interval
         progress_bar = st.progress(0)
 
         if not session_state.finish_train:
@@ -324,6 +329,7 @@ def show_training_page():
                 g_loss.append(ret['g_loss'])
                 d_loss.append(ret['d_loss'])
                 imgs.append(ret['first_25_images'])
+                g_model = ret['g_model']
                 progress = int(batch_step[-1] / total_steps * 100)
                 if show_progress:
                     fig = plt.figure()
@@ -340,6 +346,8 @@ def show_training_page():
             session_state.g_loss = g_loss
             session_state.d_loss = d_loss
             session_state.imgs = imgs
+            session_state.saved_model = g_model
+            session_state.saved_latent_dim = latent_dim
         else:
             batch_step = session_state.batch_step
             g_loss = session_state.g_loss
@@ -347,7 +355,7 @@ def show_training_page():
             imgs = session_state.imgs
 
         progress_bar.progress(100)
-        st.write("Training finished!")
+        st.write("Training finished! Model is automatically saved.")
     else:
         st.write("Waiting for training to start or finish...")
 
@@ -409,8 +417,14 @@ def show_inference_page():
 
     st.write('Still working on this 🚧')
 
-    # TODO: show generated image
-    # TODO: add pre-trained models for further exploration
+    # Load saved model
+    if session_state.saved_model != None:
+        generator = modeling.Generator(session_state.saved_latent_dim)
+        generator.load_state_dict(session_state.saved_model)
+        generator.eval()
+        st.write(generator.state_dict())
+
+    # TODO: generate images with saved and pre-trained models
 
 
 st.sidebar.title('GAN Visualizer')
