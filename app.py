@@ -10,7 +10,8 @@ import matplotlib.pyplot as plt
 import torch
 import torchvision
 from torchvision import datasets, transforms
-
+from torchvision.utils import save_image
+from matplotlib import image
 from torch.autograd import Variable
 import util
 import SessionState
@@ -493,7 +494,6 @@ def show_inference_page():
         generator = modeling.Loaded_Generator(n_classes, latent_dim, img_shape)
         generator.load_state_dict(ckpt['generator'])
         generator.eval()
-        st.write("generator log", generator)
 
     if generator != None:
         value = st.slider(
@@ -514,7 +514,13 @@ def show_inference_page():
             labels = np.array([num for _ in range(n_row) for num in range(n_row)])
             labels = Variable(torch.LongTensor(labels))
             gen_imgs = generator(z, labels)
-            st.write(gen_imgs.shape)
+            save_image(gen_imgs.data, "tmp.png", nrow=n_row, normalize=True)
+            fig = plt.figure()
+            plt.imshow(image.imread("tmp.png"))
+            plt.title(f'Generated Images')
+            plt.xticks([])
+            plt.yticks([])
+            fig
 
 
 st.sidebar.title('GAN Visualizer')
