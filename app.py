@@ -505,7 +505,6 @@ def show_inference_page():
         )
 
         if st.button('Start Inferencing'):
-            st.write(generator)
             n_row = 5
             z = Variable(
                 torch.FloatTensor(value / 10 * np.random.normal(0, 1, (n_row**2, latent_dim))))
