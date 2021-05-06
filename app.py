@@ -448,17 +448,32 @@ def show_inference_page():
     st.title('Model Inference')
     st.text('By Jiajun Bao and Zixu Chen')
 
-    st.write('Still working on this 🚧')
+    st.write(
+        'You may generate new images with your saved model from "Model Training" page or the pre-trained model we provide'
+    )
+
+    model = st.sidebar.selectbox('Inference Model:', ('My Saved Model', 'Pre-trained'))
+
     latent_dim = 100
-    # Load saved model
-    if session_state.saved_model != None:
-        latent_dim = session_state.saved_latent_dim
-        generator = modeling.Generator(session_state.saved_latent_dim)
-        generator.load_state_dict(session_state.saved_model)
-        generator.eval()
-        # st.write(generator.state_dict())
+    generator = None
+
+    if model == 'My Saved Model':
+        st.header('Inference With The Model You Just Trained')
+
+        # Load saved model
+        if session_state.saved_model != None:
+            latent_dim = session_state.saved_latent_dim
+            generator = modeling.Generator(latent_dim)
+            # generator = modeling.Loaded_Generator(10, latent_dim, 28)
+            generator.load_state_dict(session_state.saved_model)
+            generator.eval()
+        else:
+            st.write(
+                'No saved trained model found... Please train one at the "Model Training" page')
     else:
-        model_name = st.sidebar.selectbox('Dataset:', ('MNIST', 'FashionMNIST'))
+        st.header('Inference With Pre-trained Model')
+
+        model_name = st.sidebar.selectbox('Trained-on:', ('MNIST', 'FashionMNIST'))
         ckpt = torch.load(os.path.join('ckpts', f'{model_name}_generator.pth.tar'))
         latent_dim = ckpt['config']['latent_dim']
         args = ckpt["generater_args"]
@@ -466,24 +481,26 @@ def show_inference_page():
         generator = modeling.Loaded_Generator(n_classes, latent_dim, img_shape)
         generator.load_state_dict(ckpt['generator'])
         generator.eval()
-        # st.write(generator.state_dict())
-    # TODO: generate images with saved and pre-trained models
-    # generator
-    n_row = 5
-    value = st.slider(
-            'set the initial input vector',
+
+    if generator != None:
+        st.write(generator)
+        n_row = 5
+        value = st.slider(
+            'Set the initial input vector',
             min_value=0,
             max_value=10,
             value=3,
             step=1,
         )
-    z = Variable(torch.FloatTensor(value / 10 * np.random.normal(0, 1, (n_row ** 2, latent_dim))))
-    # Get labels ranging from 0 to n_classes for n rows
-    labels = np.array([num for _ in range(n_row) for num in range(n_row)])
-    labels = Variable(torch.LongTensor(labels))
-    gen_imgs = generator(z, labels)
-    st.write(gen_imgs)
-    #
+        z = Variable(torch.FloatTensor(value / 10 * np.random.normal(0, 1, (n_row**2, latent_dim))))
+
+        # Get labels ranging from 0 to n_classes for n rows
+        labels = np.array([num for _ in range(n_row) for num in range(n_row)])
+        labels = Variable(torch.LongTensor(labels))
+        gen_imgs = generator.eval_forward(z, labels)
+        st.write(gen_imgs.shape)
+
+
 st.sidebar.title('GAN Visualizer')
 st.sidebar.write('Help beginners to learn GAN more easily')
 
