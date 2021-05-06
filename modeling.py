@@ -193,3 +193,34 @@ def train(lr, latent_dim, epochs, sample_interval, dataset, dataset_path):
                     "first_25_images": gen_imgs.data[:25],
                     "g_model": generator.state_dict(),
                 }
+
+
+class Loaded_Generator(nn.Module):
+    def __init__(self, n_classes, latent_dim, img_shape):
+        super(Loaded_Generator, self).__init__()
+
+        self.label_emb = nn.Embedding(n_classes, n_classes)
+        self.img_shape = img_shape
+        def block(in_feat, out_feat, normalize=True):
+            layers = [nn.Linear(in_feat, out_feat)]
+            if normalize:
+                layers.append(nn.BatchNorm1d(out_feat, 0.8))
+            layers.append(nn.LeakyReLU(0.2, inplace=True))
+            return layers
+
+        self.model = nn.Sequential(
+            *block(latent_dim + n_classes, 128, normalize=False),
+            *block(128, 256),
+            *block(256, 512),
+            *block(512, 1024),
+            nn.Linear(1024, int(np.prod(img_shape))),
+            nn.Tanh()
+        )
+
+    def forward(self, noise, labels):
+        img_shape = self.img_shape
+        # Concatenate label embedding and image to produce input
+        gen_input = torch.cat((self.label_emb(labels), noise), -1)
+        img = self.model(gen_input)
+        img = img.view(img.size(0), *img_shape)
+        return img

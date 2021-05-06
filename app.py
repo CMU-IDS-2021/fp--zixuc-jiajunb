@@ -11,6 +11,7 @@ import torch
 import torchvision
 from torchvision import datasets, transforms
 
+from torch.autograd import Variable
 import util
 import SessionState
 import modeling
@@ -426,17 +427,41 @@ def show_inference_page():
     st.text('By Jiajun Bao and Zixu Chen')
 
     st.write('Still working on this 🚧')
-
+    latent_dim = 100
     # Load saved model
     if session_state.saved_model != None:
+        latent_dim = session_state.saved_latent_dim
         generator = modeling.Generator(session_state.saved_latent_dim)
         generator.load_state_dict(session_state.saved_model)
         generator.eval()
-        st.write(generator.state_dict())
-
+        # st.write(generator.state_dict())
+    else:
+        model_name = st.sidebar.selectbox('Dataset:', ('MNIST', 'FashionMNIST'))
+        ckpt = torch.load(os.path.join('ckpts', f'{model_name}_generator.pth.tar'))
+        latent_dim = ckpt['config']['latent_dim']
+        args = ckpt["generater_args"]
+        n_classes, latent_dim, img_shape = args['n_classes'], args['latent_dim'], args['img_shape']
+        generator = modeling.Loaded_Generator(n_classes, latent_dim, img_shape)
+        generator.load_state_dict(ckpt['generator'])
+        generator.eval()
+        # st.write(generator.state_dict())
     # TODO: generate images with saved and pre-trained models
-
-
+    # generator
+    n_row = 5
+    value = st.slider(
+            'set the initial input vector',
+            min_value=0,
+            max_value=10,
+            value=3,
+            step=1,
+        )
+    z = Variable(torch.FloatTensor(value / 10 * np.random.normal(0, 1, (n_row ** 2, latent_dim))))
+    # Get labels ranging from 0 to n_classes for n rows
+    labels = np.array([num for _ in range(n_row) for num in range(n_row)])
+    labels = Variable(torch.LongTensor(labels))
+    gen_imgs = generator(z, labels)
+    st.write(gen_imgs)
+    #
 st.sidebar.title('GAN Visualizer')
 st.sidebar.write('Help beginners to learn GAN more easily')
 
