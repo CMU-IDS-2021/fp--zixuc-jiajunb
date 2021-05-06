@@ -513,7 +513,10 @@ def show_inference_page():
             # Get labels ranging from 0 to n_classes for n rows
             labels = np.array([num for _ in range(n_row) for num in range(n_row)])
             labels = Variable(torch.LongTensor(labels))
-            gen_imgs = generator(z, labels)
+            if model == 'My Model':
+                gen_imgs = generator(z)
+            else:
+                gen_imgs = generator(z, labels)
             save_image(gen_imgs.data, "tmp.png", nrow=n_row, normalize=True)
             fig = plt.figure()
             plt.imshow(image.imread("tmp.png"))
