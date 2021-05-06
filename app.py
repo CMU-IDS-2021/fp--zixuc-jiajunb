@@ -133,8 +133,8 @@ def show_gan_intro_page():
 
     dataloaders['Original'] = util.load_sample_data(dataset, transforms.ToTensor())
     data, labels = next(iter(dataloaders['Original']))
-    fig = util.plot_grayscale_img(data, labels)
-    fig
+    orig_fig = util.plot_grayscale_img(data, labels)
+    orig_fig
 
     # Crop In the Center
     st.subheader('Crop In the Center')
@@ -152,12 +152,15 @@ def show_gan_intro_page():
     fig = util.plot_grayscale_img(data, labels)
     fig
 
+    if st.checkbox('Compare Crop In the Center With No Augmentation'):
+        orig_fig
+
     # Color Jitter
     st.subheader('Color Jitter')
     st.write('Randomly change the brightness, contrast, saturation and hue of an image')
 
-    brightness = float(st.text_input('Brightness (float):', '0'))
-    contrast = float(st.text_input('Contrast (float):', '0'))
+    brightness = float(st.text_input('Brightness (float):', '50'))
+    contrast = float(st.text_input('Contrast (float):', '50'))
     saturation = float(st.text_input('Saturation (float):', '0'))
     hue = float(st.text_input('Hue (float, [0, 0.5]):', '0'))
 
@@ -169,17 +172,23 @@ def show_gan_intro_page():
     fig = util.plot_grayscale_img(data, labels)
     fig
 
+    if st.checkbox('Compare Color Jitter With No Augmentation'):
+        orig_fig
+
     # Random Rotation
     st.subheader('Random Rotation')
     st.write('Rotate the image by angle. The rotation range will be [-Max Degree, +Max Degree]')
 
-    degrees = int(st.text_input('Max Degree (int):', '0'))
+    degrees = int(st.text_input('Max Degree (int):', '90'))
 
     transform = transforms.Compose([transforms.RandomRotation(degrees), transforms.ToTensor()])
     dataloaders['RandomRotation'] = util.load_sample_data(dataset, transform)
     data, labels = next(iter(dataloaders['RandomRotation']))
     fig = util.plot_grayscale_img(data, labels)
     fig
+
+    if st.checkbox('Compare Random Rotation With No Augmentation'):
+        orig_fig
 
     # Gaussian Blur
     st.subheader('Gaussian Blur')
@@ -192,6 +201,9 @@ def show_gan_intro_page():
     data, labels = next(iter(dataloaders['GaussianBlur']))
     fig = util.plot_grayscale_img(data, labels)
     fig
+
+    if st.checkbox('Compare Gaussian Blur With No Augmentation'):
+        orig_fig
 
 
 # Reference: https://discuss.streamlit.io/t/is-there-any-working-example-for-session-state-for-streamlit-version-0-63-1/4551/2
@@ -452,12 +464,12 @@ def show_inference_page():
         'You may generate new images with your saved model from "Model Training" page or the pre-trained model we provide'
     )
 
-    model = st.sidebar.selectbox('Inference Model:', ('My Saved Model', 'Pre-trained'))
+    model = st.sidebar.selectbox('Inference Model:', ('My Model', 'Pre-trained Model'))
 
     latent_dim = 100
     generator = None
 
-    if model == 'My Saved Model':
+    if model == 'My Model':
         st.header('Inference With The Model You Just Trained')
 
         # Load saved model
@@ -483,8 +495,6 @@ def show_inference_page():
         generator.eval()
 
     if generator != None:
-        st.write(generator)
-        n_row = 5
         value = st.slider(
             'Set the initial input vector',
             min_value=0,
@@ -492,13 +502,18 @@ def show_inference_page():
             value=3,
             step=1,
         )
-        z = Variable(torch.FloatTensor(value / 10 * np.random.normal(0, 1, (n_row**2, latent_dim))))
 
-        # Get labels ranging from 0 to n_classes for n rows
-        labels = np.array([num for _ in range(n_row) for num in range(n_row)])
-        labels = Variable(torch.LongTensor(labels))
-        gen_imgs = generator.eval_forward(z, labels)
-        st.write(gen_imgs.shape)
+        if st.button('Start Inferencing'):
+            st.write(generator)
+            n_row = 5
+            z = Variable(
+                torch.FloatTensor(value / 10 * np.random.normal(0, 1, (n_row**2, latent_dim))))
+
+            # Get labels ranging from 0 to n_classes for n rows
+            labels = np.array([num for _ in range(n_row) for num in range(n_row)])
+            labels = Variable(torch.LongTensor(labels))
+            gen_imgs = generator.eval_forward(z, labels)
+            st.write(gen_imgs.shape)
 
 
 st.sidebar.title('GAN Visualizer')
