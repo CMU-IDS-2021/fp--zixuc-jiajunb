@@ -22,57 +22,68 @@ def show_overview_page():
     st.title('Overview of Datasets')
     st.text('By Jiajun Bao and Zixu Chen')
 
-    st.header('Note to First Time Users')
     st.write(
-        'If this is the first time you open the application, please wait a bit for the dataset to be downloaded 🙂'
+        "We use two datasets in the application, the MNIST and FashionMNIST datasets. Since they are all relatively small datasets, it's easier to train than larger datasets like human face datasets. Additionally, these datasets are easy to understand, so we can easily evaluate the end results."
     )
 
     dataloaders = {}
 
-    # TODO: show dataset introduction
-
     st.header('MNIST Dataset')
-    if st.checkbox('Display sample MNIST images'):
-        dataloaders['MNIST'] = util.load_sample_data('MNIST', torchvision.transforms.ToTensor())
-        data, labels = next(iter(dataloaders['MNIST']))
-        fig = util.plot_grayscale_img(data, labels)
-        fig
+    st.write(
+        'MNIST (Modified National Institute of Standards and Technology) dataset is a set of handwritten digits from 0-9 (a total of 10 classes). The dataset images are all 28×28 pixel grayscale images. There are a total of 60,000 training images and 10,000 testing images.'
+    )
+    st.markdown('[MNIST Source](http://yann.lecun.com/exdb/mnist/)')
+
+    st.subheader('MNIST Labels')
+    st.image('assets/mnist-labels.png')
+    st.text('Fig1: MNIST labels [ref: https://m-alcu.github.io/blog/2018/01/13/nmist-dataset/]')
+
+    st.subheader('MNIST Sample Images')
+    dataloaders['MNIST'] = util.load_sample_data('MNIST', torchvision.transforms.ToTensor())
+    data, labels = next(iter(dataloaders['MNIST']))
+    fig = util.plot_grayscale_img(data, labels)
+    fig
 
     st.header('FashionMNIST Dataset')
-    if st.checkbox('Display sample FashionMNIST images'):
-        dataloaders['FashionMNIST'] = util.load_sample_data('FashionMNIST',
-                                                            torchvision.transforms.ToTensor())
-        data, labels = next(iter(dataloaders['FashionMNIST']))
-        fig = util.plot_grayscale_img(data, labels)
-        fig
+    st.write(
+        'Similar to MNIST, FashionMNIST is dataset of 10 classes of fashion items. The images are also 28×28 pixel grayscale images, and the dataset also consists of 60,000 training images and 10,000 testing images.'
+    )
+    st.markdown('[FashionMNIST Source](https://github.com/zalandoresearch/fashion-mnist)')
 
-    st.header('KMNIST Dataset')
-    if st.checkbox('Display sample KMNIST images'):
-        dataloaders['KMNIST'] = util.load_sample_data('KMNIST', torchvision.transforms.ToTensor())
-        data, labels = next(iter(dataloaders['KMNIST']))
-        fig = util.plot_grayscale_img(data, labels)
-        fig
+    st.subheader('FashionMNIST Labels')
+    st.image('assets/fashionmnist-labels.png')
+    st.text(
+        'Fig2: FashionMNIST labels [ref: https://www.researchgate.net/figure/Fashion-MNIST-Dataset-Images-with-Labels-and-Description-II-LITERATURE-REVIEW-In-image_fig1_340299295]'
+    )
 
-    st.header('QuickDraw Dataset')
-    if st.checkbox('Display sample QuickDraw images'):
-        st.write('Still working on this 🚧')
+    st.subheader('FashionMNIST Sample Images')
+    dataloaders['FashionMNIST'] = util.load_sample_data('FashionMNIST',
+                                                        torchvision.transforms.ToTensor())
+    data, labels = next(iter(dataloaders['FashionMNIST']))
+    fig = util.plot_grayscale_img(data, labels)
+    fig
 
 
 def show_gan_intro_page():
     st.title('Introduction of GAN')
     st.text('By Jiajun Bao and Zixu Chen')
 
-    st.header('What is GAN?')
+    st.header('What Is GAN?')
+    st.image('assets/gan.png')
+    st.text('Fig1: GAN architecture [ref: https://sthalles.github.io/intro-to-gans/]')
     st.write(
         'Generative adversarial network (GAN) is a deep neural network architecture that can output new data that resembles input data. At a high level, GAN consists of a generator and a discriminator. The generator learns from the training set to generate outputs with similar distribution as the original data, while the discriminator tries to distinguish generated outputs from the authentic data. The two have to compete with each other in a zero-sum game fashion to avoid suffering loss.'
     )
 
-    st.header('How can GAN Visualizer help you understand GAN?')
+    st.header('How Can GAN Visualizer Help You Understand GAN?')
     st.write(
-        '''You can use the "Pre-trained Models", "Model Training", and "Model Inference" page to play around with training GAN and using GAN. In those pages, you will be able to tune some of the most essential hyperparameters to see how they can affect the generated images. In this way, you don't need to be confused with the abstract visualization of the gradients while getting the flexibility to tune the model.'''
+        '''You can use the "Trained Model Logs", "Model Training", and "Model Inference" page to play around with training GAN and using GAN. In those pages, you will be able to tune some of the most essential hyperparameters to see how they can affect the generated images. In this way, you don't need to be confused with the abstract visualization of the gradients while getting the flexibility to tune the model.'''
+    )
+    st.write(
+        'GAN Visualizer also gives you a way of training your own GAN models without having to know how to implement the complex GAN architecture in PyTorch or TensorFlow. We abstract the model details away and allow you to directly tune the training hyperparameters in a GUI. You may freely play around with it to explore GAN. Have fun 😉'
     )
 
-    st.header('Explanation of the hyperparameters we provide')
+    st.header('Explanation of Provided Hyperparameters')
     st.write(
         'These are the parameters that you will be able to tune in the model training pages. Having a good understanding of what they are can help you get a sense of how to train a good model.'
     )
@@ -88,12 +99,16 @@ def show_gan_intro_page():
     st.markdown('**Epochs**: each epoch means going through the entire training dataset once')
     st.markdown('**Sample Interval**: how frequently we sample the loss and generated images')
 
-    st.header('How does GAN differ from CNN?')
+    st.header('How Does GAN Differ From CNN?')
+    st.image('assets/lenet5.png')
+    st.text(
+        'Fig2: example CNN architecture [ref: https://www.researchgate.net/figure/The-architecture-of-LeNet-5-23-a-CNN-used-for-digits-recognition-for-the-MNIST-dataset_fig2_321665783]'
+    )
     st.write(
-        'Both GAN and Convolutional Neural Network (CNN) are deep learning neural network architectures that mainly target the computer vision tasks. CNN is often used in discriminative tasks like image classification, while GAN is often used in generative tasks like generating new images.'
+        'Both GAN and Convolutional Neural Network (CNN) are deep learning neural network architectures that mainly target the computer vision tasks. CNN is often used in discriminative tasks like image classification, while GAN is often used in generative tasks like generating new images. For example, with the MNIST dataset, CNN can recognize the digits while GAN can generate random new handwritten digit images.'
     )
 
-    st.header("What's the relationship between GAN, CNN, and data augmentation?")
+    st.header("What's The Relationship Between GAN, CNN, And Data Augmentation?")
     st.write(
         'Data augmentation is a common technique used with CNN. In real-world scenario, we are often lack of training data, so data augmentation is a way to generate new training data. Additionally, with the added noise from data augmentation, the technique can typically make CNN models work more robustly.'
     )
@@ -107,7 +122,7 @@ def show_gan_intro_page():
     )
 
     st.sidebar.subheader('Data Augmentation Configurations')
-    dataset = st.sidebar.selectbox('Select dataset:', ('MNIST', 'FashionMNIST', 'KMNIST'))
+    dataset = st.sidebar.selectbox('Select dataset:', ('MNIST', 'FashionMNIST'))
 
     dataloaders = {}
 
@@ -202,17 +217,21 @@ session_state = SessionState.get(
 
 
 def show_pretrain_page():
-    st.title('Pre-trained Models')
+    st.title('Trained Model Logs')
     st.text('By Jiajun Bao and Zixu Chen')
+
     st.write(
-        'To avoid the long training wait time, we provide pre-trained models with less flexibility in hyperparameter configurations.'
+        'To avoid the long training wait time, we provide a set of pre-trained model logs with less flexibility in hyperparameter configurations.'
     )
     st.write(
         'We have recorded the logs of the loss data and generated image when training these models, so you can simulate a real training process without having to acutally wait.'
     )
+    st.markdown(
+        '**Hint**: you may check the "GAN Introduction" page for explanation of the provided hyperparameters.'
+    )
 
     st.sidebar.subheader('Hyperparameter Configurations')
-    dataset = st.sidebar.selectbox('Training dataset:', ('MNIST', 'FashionMNIST', 'KMNIST'))
+    dataset = st.sidebar.selectbox('Training Dataset:', ('MNIST', 'FashionMNIST'))
     lr = st.sidebar.selectbox('Learning Rate:', (0.0001, 0.0002, 0.0004, 0.0008, 0.001, 0.002), 2)
     latent_dim = st.sidebar.selectbox('Latent Variable Dimension:', (25, 50, 75, 100, 125), 3)
     batch_size = st.sidebar.selectbox('Batch Size:', ([64]))
@@ -286,9 +305,17 @@ def show_training_page():
     st.title('Model Training')
     st.text('By Jiajun Bao and Zixu Chen')
 
+    st.write(
+        "You can reduce the number of training epochs to a small number to finish the training faster. However, the generated images might look very bad if we don't train enough."
+    )
+    st.markdown('**One Class Dataset Label**: digit 8 (MNIST), bag (FashionMNIST)')
+    st.markdown(
+        '**Hint**: you may check the "GAN Introduction" page for explanation of the provided hyperparameters.'
+    )
+
     st.sidebar.subheader('Hyperparameter Configurations')
 
-    dataset = st.sidebar.selectbox('Training dataset:', ('MNIST', 'FashionMNIST', 'KMNIST'))
+    dataset = st.sidebar.selectbox('Training Dataset:', ('MNIST', 'FashionMNIST'))
     dataset_classes = st.sidebar.selectbox('Dataset Classes:', (1, 10), 0)
     lr = float(st.sidebar.text_input('Learning Rate (float):', '0.0004'))
     latent_dim = int(st.sidebar.text_input('Latent Variable Dimension (int):', '100'))
@@ -302,11 +329,6 @@ def show_training_page():
     if dataset != session_state.dataset or dataset_classes != session_state.dataset_classes or lr != session_state.lr or latent_dim != session_state.latent_dim or epochs != session_state.epochs or sample_interval != session_state.sample_interval:
         session_state.start_train = False
         session_state.finish_train = False
-
-    st.header('Reminder')
-    st.write(
-        "You can reduce the number of training epochs to a small number to finish the training faster. However, the generated images might look very bad if we don't train enough."
-    )
 
     st.header('Training Progress')
     batch_step = []
@@ -442,7 +464,7 @@ st.sidebar.write('Help beginners to learn GAN more easily')
 
 st.sidebar.subheader('Page Navigation')
 pages = [
-    'Dataset Overview', 'GAN Introduction', 'Pre-trained Models', 'Model Training',
+    'Dataset Overview', 'GAN Introduction', 'Trained Model Logs', 'Model Training',
     'Model Inference'
 ]
 
