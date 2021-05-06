@@ -322,6 +322,9 @@ def show_training_page():
     st.write(
         "You can reduce the number of training epochs to a small number to finish the training faster. However, the generated images might look very bad if we don't train enough."
     )
+    st.write(
+        'By default you will use the small one class dataset to train the model. This helps train model faster but prevent you from generating images in other classes. You may switch to the full ten class dataset to generate images for different items.'
+    )
     st.markdown('**One Class Dataset Label**: digit 8 (MNIST), bag (FashionMNIST)')
     st.markdown(
         '**Hint**: you may check the "GAN Introduction" page for explanation of the provided hyperparameters.'
@@ -462,7 +465,7 @@ def show_inference_page():
     st.text('By Jiajun Bao and Zixu Chen')
 
     st.write(
-        'You may generate new images with your saved model from "Model Training" page or the pre-trained model we provide'
+        'You may generate new images with your saved model from the "Model Training" page or the pre-trained model we provide.'
     )
 
     model = st.sidebar.selectbox('Inference Model:', ('My Model', 'Pre-trained Model'))
@@ -477,7 +480,6 @@ def show_inference_page():
         if session_state.saved_model != None:
             latent_dim = session_state.saved_latent_dim
             generator = modeling.Generator(latent_dim)
-            # generator = modeling.Loaded_Generator(10, latent_dim, 28)
             generator.load_state_dict(session_state.saved_model)
             generator.eval()
         else:
@@ -496,6 +498,10 @@ def show_inference_page():
         generator.eval()
 
     if generator != None:
+        st.write(
+            'You may use the slider below to adjust the random noise passed to the generator. If you tune it, you will see slight difference in the generated images.'
+        )
+
         value = st.slider(
             'Set the initial input vector',
             min_value=0,
@@ -503,8 +509,10 @@ def show_inference_page():
             value=3,
             step=1,
         )
+        start = st.button('Start Inferencing')
 
-        if st.button('Start Inferencing'):
+        st.header('Generated Images')
+        if start:
             n_row = 5
             z = Variable(
                 torch.FloatTensor(value / 10 * np.random.normal(0, 1, (n_row**2, latent_dim))))
@@ -523,6 +531,8 @@ def show_inference_page():
             plt.xticks([])
             plt.yticks([])
             fig
+        else:
+            st.write('Waiting for inferencing to start...')
 
 
 st.sidebar.title('GAN Visualizer')
