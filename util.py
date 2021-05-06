@@ -16,7 +16,6 @@ from torchvision import datasets
 dataset_to_method = {
     'MNIST': datasets.MNIST,
     'FashionMNIST': datasets.FashionMNIST,
-    'KMNIST': datasets.KMNIST
 }
 
 
