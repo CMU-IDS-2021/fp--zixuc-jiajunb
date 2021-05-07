@@ -509,7 +509,7 @@ def show_inference_page():
             value=3,
             step=1,
         )
-        start = st.button('Start Inferencing')
+        start = st.button('Start Inference')
 
         st.header('Generated Images')
         if start:
@@ -532,7 +532,7 @@ def show_inference_page():
             plt.yticks([])
             fig
         else:
-            st.write('Waiting for inferencing to start...')
+            st.write('Waiting for inference to start...')
 
 
 st.sidebar.title('GAN Visualizer')
