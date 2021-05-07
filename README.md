@@ -4,7 +4,7 @@
 - **Report (MD) URL**:
   - [PDF](Report.pdf)
   - [MD](Report.md)
-- **Video URL**: https://drive.google.com/file/d/1RkdWHehcav6G5lu3DW5gZ0H6_dzQDisN/view?usp=sharing
+- **Video URL**: https://drive.google.com/file/d/1gVBiTefAnEA8M0ZS3pGNNIHlclsYgpUv/view?usp=sharing
 - **Team members**:
   - Contact person: zixuc@andrew.cmu.edu
   - jiajunb@andrew.cmu.edu
