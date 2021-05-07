@@ -2,9 +2,9 @@
 
 - **Online URL**: https://share.streamlit.io/cmu-ids-2021/fp--zixuc-jiajunb/main/app.py
 - **Report (MD) URL**:
-  - [MD](Report.md)
   - [PDF](Report.pdf)
-- **Video URL**: TODO
+  - [MD](Report.md)
+- **Video URL**: https://drive.google.com/file/d/1RkdWHehcav6G5lu3DW5gZ0H6_dzQDisN/view?usp=sharing
 - **Team members**:
   - Contact person: zixuc@andrew.cmu.edu
   - jiajunb@andrew.cmu.edu
